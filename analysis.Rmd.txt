@@ -1,0 +1,510 @@
+---
+title: "Analyse of the data of aCompany"
+author: "Barbara Eckl-Ganser"
+date: "31 July 2019"
+output: 
+    html_document:
+        toc: true
+        toc_float: true
+---
+
+## To analyze the data and to generate the developer networks, I use the the library
+## coronet (available at GitHub: https://github.com/se-passau/coronet/tree/master).
+## The input data must have the folder structure as discribed in the Readme of the coronet 
+## project.
+## I extended the coronet library by additional function to parse my data and to use new data 
+## sources. In my case, I have talk data, chat data, and data form direct mails 
+## among developers, no mailing list.
+
+```{r setup, include=FALSE}
+installed <- rownames(installed.packages())
+
+## needed packages to analyze and plot the data
+needed    <- c('ggplot2','knitr','gridExtra','kableExtra','reshape2','dplyr','plyr','tidyr','ggalluvial','igraph', 'RColorBrewer', 'viridis')
+
+
+
+## install needed packages, if not already done
+if(any(! needed %in% installed)){
+  for (p in needed[!needed %in% installed])
+    install.packages(p,repos = "http://cran.us.r-project.org")
+}
+
+```
+
+```{r}
+knitr::opts_chunk$set(echo=F, highlight=FALSE, eval=TRUE,  warning=F, message = F, error = T, fig.keep = 'all', fig.height = 5)
+suppressMessages(library(ggplot2))
+suppressMessages(library(knitr))
+suppressMessages(library(gridExtra))
+#suppressMessages(library(kableExtra))
+suppressMessages(library(reshape2))
+suppressMessages(library(dplyr))
+suppressMessages(library(plyr))
+suppressMessages(library(tidyr))
+suppressMessages(library(ggalluvial))
+```
+
+```{r}
+
+## initialization of the coronet library
+source("util-init.R")
+
+## The coronet library has no possibility to classify developers (authors).
+## Consequently, this is done here manually, especially the classification regarding
+## the team and location affiliation.
+set.author.information = function(graph) {
+    vertices = igraph::as_data_frame(graph, what = "vertices")
+    edges = igraph::as_data_frame(graph, what = "edges")
+
+    author.vertices =  data.frame()
+    artifact.vertices = data.frame()
+    author.vertices = vertices[vertices$type == "Author",]
+    artifact.vertices = vertices[vertices$type == "Artifact",]
+    author.vertices[, "kind"] = "location-external"
+    author.vertices[vertices$name %in% c(1,2,3,4,5,6,7,8,19), "kind"] = "team-internal"
+    author.vertices[vertices$name %in% c(9,10,11,12,13,14,15,16,22), "kind"] = "location-internal"
+
+    new.vertices = dplyr::bind_rows(author.vertices, artifact.vertices)
+    new.graph = igraph::graph_from_data_frame(edges, directed = FALSE, vertices = new.vertices)
+    return(new.graph)
+}
+
+## As already discribed, the data have to be in an certain folder structure.
+## This is the path to my data
+CF.DATA = "/../../folderThatContainsTheData" # path to codeface data
+
+## This parameter has to be set, but it is not further relevant (based on Codeface, which
+## can be used to mine commit data und mailing lists)
+CF.SELECTION.PROCESS = "threemonth"
+
+## I select as project name "aCompany" as abbreviation of the companies' name.
+CASESTUDY = "aCompany"
+
+## I mine commit data of the repository, which was mainly edited in our week of observation.
+## In Codeface, we select therefore the artifact granularity "file".
+ARTIFACT = "file" # only relevant for cochange
+
+## The parameter discribed the used data for building the networks.
+AUTHOR.RELATION =  c("talk", "cochange", "direct.mail", "chat") # mail, cochange, issue  "talk",
+
+## The parameter is neccessary to define the relation between the artifacts.
+ARTIFACT.RELATION = "cochange"
+
+## / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
+## Project and network configuration ---------------------------------------
+
+## initialize project configuration
+proj.conf = ProjectConf$new(CF.DATA, CF.SELECTION.PROCESS, CASESTUDY, ARTIFACT)
+proj.conf$update.value("commits.filter.base.artifact", FALSE)
+proj.conf$update.value("commits.filter.untracked.files", FALSE)
+
+## initialize network configuration
+## The network configuration bases on the above parameters to build a network using
+## all available data sources
+net.conf = NetworkConf$new()
+net.conf$update.values(updated.values = list(author.relation = AUTHOR.RELATION, artifact.relation = ARTIFACT.RELATION))
+# net.conf$print()
+
+## get ranges (nessecary for historical reasons)
+ranges = proj.conf$get.value("ranges")
+revisions.callgraph = proj.conf$get.value("revisions.callgraph")
+
+```
+
+
+# 1. Complete network of all data (talks, chats, e-mails, git-repository)
+
+```{r}
+## complete network ----------------------------------
+
+x.data = ProjectData$new(project.conf = proj.conf)
+x = NetworkBuilder$new(project.data = x.data, network.conf = net.conf)
+
+## build developer network over the whole week
+complete.author.network = x$get.author.network()
+
+## add author information about the team and location affiliation
+complete.author.network = set.author.information(complete.author.network)
+
+## plot the author network using the ploting function of coronet
+plot.network(complete.author.network)
+
+```
+
+```{r}
+## complete network ----------------------------------
+## To specify the exact layout of a plot, we use the following function of 
+## the igraph library
+
+# co = igraph::tk_coords(igraph::tkplot(complete.author.network))
+# determinated coordinates of entire graph of the interactions between the developers
+co = matrix(c(  270,  546, 211,  328, 136,  323, 276, 303, 208,  458, 272,  198,
+                145,  220, 213,  230, 499,  454, 332, 432, 405,  405, 433,  552,
+                71,   55,  306,  167, 289,  482, 185, 152, 347,  277, 334,  553,  20,  333,
+                48,   89,  115,  526,  23,  198, 248,   0,  36,  143, 512,  511, 459,    9,
+                495,  346, 45,   404,  63,  487,  25, 272, 386,  200,  90,    7,  19,  372),
+              nrow = 33, byrow = FALSE)
+network = igraph::set.graph.attribute(complete.author.network, "layout", co)
+#network = igraph::set.graph.attribute(network, "vertex.label.color", "black")
+p = plot.network(network)
+
+```
+
+
+## 1.1 Page rank of the team members
+
+```{r}
+## compute page rank of the entire network using a function from igraph
+page.rank = igraph::page.rank(complete.author.network, directed = FALSE)
+pr = data.frame("author.name"= names(page.rank$vector),
+                      "page.rank.value"=page.rank$vector)
+pr = pr[order(pr$page.rank.value, decreasing = TRUE),]
+kable(pr, digits = 2)
+
+```
+
+## 1.2 Same data split into time slots of one day
+
+```{r}
+## split the data into time periods of one day; the used split basis are talks
+ranges = split.data.time.based(x.data, time.period = "1 days", split.basis = c("talks"), sliding.window = FALSE)
+
+## build one network including all data sources per day
+networks.complete = lapply(names(ranges), function(range){
+    # y.data = RangeData$new(project.conf = proj.conf, range = time.range)
+    y = NetworkBuilder$new(project.data = ranges[[range]], network.conf = net.conf)
+    g = y$get.author.network()
+    g = set.author.information(g)
+    plot.network(g)
+    return(g)
+})
+
+
+#page.rank.complete.network = lapply(networks.complete, function(net){
+#    page.rank = igraph::page.rank(net, directed = FALSE)
+#    #page.rank$vector$name = names(page.rank$vector)
+#    return(data.frame("author.name"= names(page.rank$vector),
+#                      "page.rank.value"=page.rank$vector))
+#})
+
+#kable(page.rank.complete.network)
+```
+
+## 1.3. Observations
+
+1. The teams is well connected among each other, at the place and in the companys.
+2. The product owner of the team (number 4) is strongly  connected to the developer team. This is an indicator for a good relation between the developer team and the product owner.
+3. It is very interesting that there is a person (number 9) who is not directly part of the team, but very strongly connected to especially the developers of the team.
+4. The values of the computed page rank show the importance of the product owner in the team.
+
+# 2. Only commit data
+
+## 2.1. Author network
+```{r}
+## initialize network configuration
+## following, we concentrate on commit data and use cochange as the only data source.
+net.conf = NetworkConf$new()
+net.conf$update.values(updated.values = list(author.relation = "cochange", artifact.relation = ARTIFACT.RELATION))
+# net.conf$print()
+
+## get ranges
+ranges = proj.conf$get.value("ranges")
+revisions.callgraph = proj.conf$get.value("revisions.callgraph")
+
+x.data = ProjectData$new(project.conf = proj.conf)
+x = NetworkBuilder$new(project.data = x.data, network.conf = net.conf)
+
+g = x$get.author.network()
+g = set.author.information(g)
+
+plot.network(g)
+
+```
+
+## 2.2. Only commit data, but with source code files (bipartite network)
+
+```{r}
+## Here we build a bipartite network including developers and the edited files
+## based on commit information. Edges are only between files and developers, but not 
+## among files or developers.
+g = x$get.bipartite.network()
+g = set.author.information(g)
+
+plot.network(g)
+
+```
+
+
+# 3. Only mail data
+
+```{r}
+## initialize network configuration
+## The following analysis based only on direct e-mails between employees of the
+## company
+net.conf = NetworkConf$new()
+net.conf$update.values(updated.values = list(author.relation = "direct.mail", artifact.relation = ARTIFACT.RELATION))
+# net.conf$print()
+
+## get ranges
+ranges = proj.conf$get.value("ranges")
+revisions.callgraph = proj.conf$get.value("revisions.callgraph")
+
+x.data = ProjectData$new(project.conf = proj.conf)
+x = NetworkBuilder$new(project.data = x.data, network.conf = net.conf)
+
+## developer networks based only on e-mails for the entire week
+g = x$get.author.network()
+g = set.author.information(g)
+
+plot.network(g)
+
+```
+
+# 4. Only chat data
+
+```{r}
+## developer networks including only edges for chat messages
+## initialize network configuration
+net.conf = NetworkConf$new()
+net.conf$update.values(updated.values = list(author.relation = "chat", artifact.relation = ARTIFACT.RELATION))
+# net.conf$print()
+
+## get ranges
+ranges = proj.conf$get.value("ranges")
+revisions.callgraph = proj.conf$get.value("revisions.callgraph")
+
+x.data = ProjectData$new(project.conf = proj.conf)
+x = NetworkBuilder$new(project.data = x.data, network.conf = net.conf)
+
+g = x$get.author.network()
+g = set.author.information(g)
+
+plot.network(g)
+
+```
+
+
+# 5.Only talk data
+
+```{r}
+## initialize network configuration
+## developer networks including only talk data
+net.conf = NetworkConf$new()
+net.conf$update.values(updated.values = list(author.relation = "talk", artifact.relation = ARTIFACT.RELATION))
+# net.conf$print()
+
+## get ranges
+ranges = proj.conf$get.value("ranges")
+revisions.callgraph = proj.conf$get.value("revisions.callgraph")
+
+x.data = ProjectData$new(project.conf = proj.conf)
+x = NetworkBuilder$new(project.data = x.data, network.conf = net.conf)
+
+g = x$get.author.network()
+g = set.author.information(g)
+
+plot.network(g)
+```
+
+
+
+## 5.1 Only talk data split
+
+```{r}
+## split the talk data in time periods of one day and build networks for each time
+## period
+ranges = split.data.time.based(x.data, time.period = "1 days",split.basis = c("talks"), sliding.window = FALSE)
+
+networks.talks = lapply(ranges, function(range){
+    # y.data = RangeData$new(project.conf = proj.conf, range = time.range)
+    y = NetworkBuilder$new(project.data = range, network.conf = net.conf)
+    g = y$get.author.network()
+    g = set.author.information(g)
+    plot.network(g)
+    return(g)
+})
+
+
+```
+
+## 5.2 Analysis subjects of talk data
+
+### most selected subjects
+```{r}
+## select subjects of the talks
+talks = x.data$get.talks()
+## count the number of talks regarding subjects
+talk.subjects = aggregate(thread~subject, talks, length) 
+
+## order regarding number of talks per subjects
+df <-talk.subjects[order(talk.subjects$thread, talk.subjects$subject, decreasing = TRUE),]
+
+## plot for this analysis only most occurend subjects (-> head)
+p <- ggplot(head(df), aes(x=subject, y=thread, fill=subject)) +  geom_bar(stat="identity") + theme_minimal() + theme(legend.position="none") + viridis::scale_fill_viridis(option = "plasma", discrete = TRUE, end = 0.8, begin = 0.05) + ylab("Number of talks") + xlab("Subject of talk")
+
+p
+```
+
+```{r}
+## select subjects of the talks
+kable(head(df, n=6), digits = 2)
+```
+
+
+
+### all subjects
+```{r}
+## plot for all subjects
+p <- ggplot(df, aes(x=subject, y=thread, fill=subject)) +  geom_bar(stat="identity") + theme_minimal() + theme(legend.position="none", axis.text.x = element_text(angle = 90, hjust = 1)) + viridis::scale_fill_viridis(option = "plasma", discrete = TRUE, end = 0.8, begin = 0.05) + ylab("Number of talks") + xlab("Subject of talk")
+
+p
+```
+
+## 5.3 Analysis of the talk duration
+```{r}
+talks = x.data$get.talks()
+authors = unique(c(talks$author.name, talks$second.person)) # select all (unique) speakers
+talks.per.author = x.data$group.artifacts.by.data.column(data.source = "talks", group.column = "author.name") # select all talks per author/initiating person 
+talks.per.sec.person = x.data$group.artifacts.by.data.column(data.source = "talks", group.column = "second.person") # select all talks per answering person 
+authors.with.data = lapply(authors, function(name){
+    talks.name = talks[talks$author.name == name | talks$second.person == name,]
+    return(talks.name)
+}) # authors with the talk, at which they participate
+names(authors.with.data) = authors # assign the lists with the names of the autors
+
+authors.with.duration.medium = lapply(authors.with.data, function(author.data){
+    duration = author.data$duration[!is.na(author.data$duration)]
+    mean.duration = mean(duration)
+    return(mean.duration)
+}) # mean of duration per person
+
+t = as.data.frame(authors.with.duration.medium)
+names(t) <- authors
+
+#kable(t(t), digits = 2)
+kable(head(t(t), n=10), digits = 2) # output of all means of talk durations per person
+
+```
+
+### duration of talks - histogramm
+```{r}
+## The participants of a talk can participate with a different duration,
+## therefore we selected the longest duration per talk to visualize the 
+## duration of talks
+thread.with.duration <- aggregate(duration~thread, talks, FUN = "max")
+
+p <- ggplot(thread.with.duration, aes(x=duration)) +  geom_histogram(colour="deepskyblue1", fill="deepskyblue1") + theme_minimal() + theme(legend.position="none") + ylab("Number of talks") + xlab("Duration of talk") + geom_vline(aes(xintercept=mean(duration)), color="deepskyblue1", linetype="dashed", size=1) 
+
+mean.duration = mean(thread.with.duration$duration)
+
+p
+```
+
+```{r}
+## limited to a short duration of talks with less or equal 20 minutes
+## select the maximum duration per thread
+thread.with.duration <- aggregate(duration~thread, talks, FUN = "max")
+
+longer.than.20 <- length(which(thread.with.duration$duration >20))
+smaller.or.equal.20 <- lapply(c(1:20), function(i){return(length(which(thread.with.duration$duration ==i)))})
+talk.duration <- data.frame("duration"=c(unlist(smaller.or.equal.20), longer.than.20), "identifier"=c(c(1:20), ">20"))
+
+p <- ggplot(talk.duration, aes(x=identifier, y=duration)) +  geom_bar(stat="identity", colour="deepskyblue1", fill="deepskyblue1") + theme_minimal() + theme(legend.position="none", axis.title.x = element_text(size = 26),
+  axis.text.x = element_text(size = 26), axis.text.y = element_text(size = 26),
+  axis.title.y = element_text(size = 26)) + ylab("Number of talks") + xlab("Duration of talk") + scale_x_discrete(limits = c(c(1:20), ">20"), breaks = c("1", "5","10", "15", ">20")) #+ geom_vline(aes(xintercept=mean(duration)), color="darkorchid4", linetype="dashed", size=1) #+ xlim(0,20)
+
+p
+```
+
+### sum of durations
+```{r}
+
+talks = x.data$get.talks()
+## sum of durations per subject
+talk.subjects = aggregate(duration~subject, talks, sum)
+
+## order of subjects regarding the sum of duration
+df <-talk.subjects[order(talk.subjects$duration, talk.subjects$subject, decreasing = TRUE),]
+
+## most occured subject regarding duration with named subjects 
+## (labels exactly defined based on observations)
+p <- ggplot(head(df), aes(x=subject, y=duration, fill=subject)) +  geom_bar(stat="identity") + theme_minimal() + theme(legend.position="none", axis.text.x = element_text(size=10, angle=45),) + scale_x_discrete(labels=c("implementation", "meeting", "organization", "planing of user stories", "private", "planing of presentation")) + viridis::scale_fill_viridis(option = "plasma", discrete = TRUE, end = 0.8, begin = 0.05) + ylab("Duration of talks") + xlab("Subject of talk")
+
+p
+```
+
+```{r}
+
+blank_theme <- theme_minimal()+
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid=element_blank(),
+  axis.ticks = element_blank(),
+  plot.title=element_text(size=14, face="bold")
+  )
+
+## sum of talk duration per subject (most occured subjects)
+q <- ggplot(head(df), aes(x="", y=duration, fill=subject)) + blank_theme + geom_bar(width = 1, stat="identity") + coord_polar("y", start=0)  + viridis::scale_fill_viridis(option = "plasma", discrete = TRUE, end = 0.8, begin = 0.05)   blank_theme # + theme(legend.position="none")
+
+q
+```
+
+
+
+### Sum of duration of talks per day
+Monday
+```{r}
+## split data with timer periods of one day per split
+ranges = split.data.time.based(x.data, time.period = "1 days",split.basis = c("talks"), sliding.window = FALSE)
+
+talk.information = lapply(ranges, function(range){
+    talks = range$get.talks()
+    #talk.duration.starter = aggregate(duration ~ author.name, talks, sum)
+    #talk.duration.recipient = aggregate(duration ~ second.person, talks, sum)
+    
+    talk.mean.duration.starter = aggregate(duration ~ author.name, talks, FUN = "sum")
+    #talk.mean.duration.recipient = aggregate(duration ~ second.person, talks, FUN = "mean")
+    
+    result = talk.mean.duration.starter
+    #data.frame(#"duration.starter" = talk.duration.starter,
+                      #"duration.recipient" = talk.duration.recipient,
+     #                 "mean.duration.starter" = 
+                      #"mean.duration.recipient" = talk.mean.duration.recipient
+      #                )
+    return(result)
+})
+
+## table of talks information for Monday with mean duration per person
+kable(talk.information[[1]], digits = 2)
+```
+
+Thuesday
+```{r}
+kable(talk.information[[2]], digits = 2)
+```
+
+Wednesday
+```{r}
+kable(talk.information[[3]], digits = 2)
+```
+
+```{r}
+## Analysis of the duration of talks in minuetes per person 
+q <- ggplot(talk.information[[3]], aes(x=author.name, y=duration, fill=author.name)) +  geom_bar(stat="identity") + theme_minimal() + theme(legend.position="none") + ylab("Sum of durations of talks (min)") + xlab("Authors") + viridis::scale_fill_viridis(option = "plasma", discrete = FALSE, end = 0.8, begin = 0.05) 
+
+q
+```
+
+Thursday
+```{r}
+kable(talk.information[[4]], digits = 2)
+```
+
+Friday
+```{r}
+kable(talk.information[[5]], digits = 2)
+```
+

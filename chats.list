@@ -1,0 +1,53 @@
+2;5;2019-06-18;00:00:00;"?";2;1;1
+5;6;2019-06-18;00:00:00;"?";2;2;2
+4;12;2019-06-18;12:08:00 PM;"Orga";1;3;3
+4;"entire Team";2019-06-18;12:59:00 PM;"Tickets";1;4;4
+7;"entire Team";2019-06-17;09:04:00 AM;"Statusupdate";1;6;5
+7;"entire Team";2019-06-17;00:00:00;"Orga";1;7;6
+4;"entire Team";2019-06-17;00:00:00;"Feedback von Kunden";1;8;7
+3;"entire Team";2019-06-17;00:00:00;"Hilfe bei IT-Problem";1;9;8
+"extern";5;2019-06-17;00:00:00;"Implementierung";3;10;9
+"extern";1;2019-06-17;00:00:00;"Implementierung";3;10;10
+"extern";4;2019-06-17;00:00:00;"Supportanfrage";30;11;11
+"extern";5;2019-06-17;00:00:00;"Supportanfrage";30;11;12
+2;"Frontend-Gruppe";2019-06-17;00:00:00;"Implementierung";3;12;13
+1;2;2019-06-17;00:00:00;"Pull Request";1;13;14
+2;"entire Team";2019-06-19;00:00:00;"Pull Request";1;14;15
+3;2;2019-06-19;00:00:00;"Pull Request";1;14;16
+1;"entire Team";2019-06-18;09:31:00 AM;"Implementierung";;23;17
+2;13;2019-06-19;00:00:00;"";1;15;18
+7;3;2019-06-20;00:00:00;"";1;16;19
+2;"entire Team";2019-06-18;00:00:00;"Essen";1;17;20
+2;"entire Team";2019-06-20;00:00:00;"Essen";1;18;21
+4;"ext";2019-06-19;00:00:00;"Terminabsprache";6;19;22
+4;"ext";2019-06-20;00:00:00;"Tickets";2;20;23
+4;"ext";2019-06-19;00:00:00;"Testen";6;21;24
+4;"ext";2019-06-17;00:00:00;"Orga";5;22;25
+3;8;2019-06-18;00:00:00;"privat";1;24;26
+7;3;2019-06-18;00:00:00;"Orga";2;25;27
+3;1;2019-06-18;00:00:00;"Implementierung";1;26;28
+1;3;2019-06-17;00:00:00;"Pull Request";2;27;29
+2;19;2019-06-19;00:00:00;"Orga";2;28;30
+2;15;2019-06-17;00:00:00;"Implementierung";2;29;31
+4;"entire Team";2019-06-17;00:00:00;"Orga: Besuch";4;30;32
+4;9;2019-06-17;00:00:00;"Orga: Besuch";4;30;33
+4;12;2019-06-17;00:00:00;"Orga: Besuch";4;30;34
+4;14;2019-06-17;00:00:00;"Orga: Besuch";4;30;35
+1;"entire Team";2019-06-20;08:31:00 AM;"Implementierung";1;31;36
+1;15;2019-06-18;00:00:00;"Implementierung";;32;37
+1;16;2019-06-19;00:00:00;"Implementierung";;33;38
+1;16;2019-06-16;00:00:00;"Implementierung";;34;39
+1;11;2019-06-18;00:00:00;"Implementierung";1;35;40
+"extern";5;2019-06-21;00:00:00;"technische Frage";3;36;41
+5;"exter";2019-06-18;00:00:00;"technische Frage";2;37;42
+"extern";5;2019-06-18;00:00:00;"Terminabsprache";3;38;43
+3;9;2019-06-17;00:00:00;"Implementierung";3;39;44
+3;5;2019-06-17;00:00:00;"Implementierung";3;39;45
+"extern";5;2019-06-17;00:00:00;"technische Frage";3;40;46
+1;"extern";2019-06-21;00:00:00;"technisches Problem";3;41;47
+1;15;2019-06-21;00:00:00;"Implementierung";4;42;48
+1;16;2019-06-21;00:00:00;"Implementierung";4;42;49
+13;3;2019-06-19;00:00:00;"Öffentlichkeitsarbeit";2;43;50
+1;3;2019-06-17;00:00:00;"Implementierung";2;44;51
+4;"entire Team";2019-06-19;00:00:00;"technische Frage";3;45;52
+1;"entire Standort";2019-06-21;00:00:00;"Kuchen und Süßes";1;46;53
