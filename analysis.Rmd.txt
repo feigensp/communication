@@ -14,7 +14,9 @@ output:
 ## project.
 ## I extended the coronet library by additional function to parse my data and to use new data 
 ## sources. In my case, I have talk data, chat data, and data form direct mails 
-## among developers, no mailing list.
+## among developers, no mailing list. The changed coronet library is available at GitHub:
+## https://github.com/ecklbarb/coronet/tree/read-data-from-company 
+
 
 ```{r setup, include=FALSE}
 installed <- rownames(installed.packages())
